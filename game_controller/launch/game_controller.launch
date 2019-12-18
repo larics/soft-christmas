@@ -1,0 +1,6 @@
+<launch>
+	<node type="game_controller" pkg="game_controller" name="game_controller">
+		<param name="reset" value="0"/>
+	</node>
+</launch>
+

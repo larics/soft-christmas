@@ -10,13 +10,16 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
+
+
 class game_controller:
 	def __init__(self):
 		self.pub = rospy.Publisher("buttons",String,queue_size=1)
 		self.sub = rospy.Subscriber("/raspicam_node/image",Image,self.callback)
+		
 		self.bridge = CvBridge()
 		
-		self.ready = 0
+		rospy.set_param('ready', 0)
 		self.last_string = ""
 
 		self.initial_cnt_points = []
@@ -90,6 +93,7 @@ class game_controller:
 		return points
 
 
+
 	def getpoints(self, cv_image):
 		points = []
 		
@@ -98,11 +102,11 @@ class game_controller:
 		img2gray = cv2.bitwise_not(img2gray)
 
 		hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-		hsv = cv2.inRange(hsv, (40,0,0), (90, 255, 255))
+		hsv = cv2.inRange(hsv, (80,0,0), (1, 255, 255))
 		hsv = cv2.bitwise_not(hsv)
 		
 		mask = cv2.bitwise_and(img2gray, img2gray, mask=hsv)
-		ret, mask = cv2.threshold(mask, 90 , 255, cv2.THRESH_BINARY) 
+		ret, mask = cv2.threshold(mask, 145 , 255, cv2.THRESH_BINARY) 
 
 		mask2 = np.zeros((rows+2, cols+2), np.uint8)
 		cv2.floodFill(mask, mask2, (0,0), 0)
@@ -127,6 +131,7 @@ class game_controller:
 				cv2.circle(opening, (cX, cY), 2, (0, 0, 255), -1)
 				points.append((cX,cY))
 
+		
 		cv2.imshow("initial", opening)
 		cv2.waitKey(10)
 		return points
@@ -137,12 +142,12 @@ class game_controller:
 		except CvBridgeError as e:
 			print(e)
 					
-		if self.ready:
+		if rospy.get_param('ready'):
 			buttons = self.compareimages(cv_image)
 			self.pub.publish(buttons)
 		else:			
 			self.initial_img = cv_image
-			self.ready = 1
+			rospy.set_param('ready', 1)
 			self.initial_cnt_points = self.getpoints(self.initial_img)
 			self.initial_cnt_points = self.sortPoints(self.initial_cnt_points)
 		
